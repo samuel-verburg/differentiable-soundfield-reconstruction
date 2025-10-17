@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diffSFR"
+version = "0.1.0"
+description = "Differentiable Soundfield Reconstruction."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [ { name = "Samuel A. Verburg", email = "saveri@dtu.dk" } ]
+
+dependencies = [
+  "numpy>=1.21",
+  "scipy>=1.7",
+  "matplotlib>=3.4",
+  "tqdm>=4.60",
+  "torch>=1.12",
+  "pillow>=9.0",
+  "siren-pytorch>=0.1",
+  "ipython>=7.0",
+  "jupyter>=1.0"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.setuptools]
+packages = { find = { where = ["src"] } }
