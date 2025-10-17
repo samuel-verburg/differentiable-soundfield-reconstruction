@@ -7,7 +7,7 @@ The DPNN approach is described in detail here:
 S. A. Verburg, E. Fernandez-Grande, P. Gerstoft, "Differentiable physics for sound field reconstruction", J. Acoust. Soc. Am. XX, XX (2025).
 
 <p align="center">
-    <img src="../examples/figures/twenty_pulses/animation.gif" alt="Sound field reconstructed by PINN and DPNN models" width=50%>
+    <img src="examples/figures/twenty_pulses/animation.gif" alt="Sound field reconstructed by PINN and DPNN models" width=50%>
 </p>
 
 This repository implements two deep-learning approaches for reconstructing acoustic fields from sparse sensor measurements:
