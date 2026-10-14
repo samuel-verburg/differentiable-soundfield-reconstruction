@@ -4,7 +4,7 @@ This repository allows you to solve sound field reconstruction problems using **
 
 The DPNN approach is described in detail here:
 
-S. A. Verburg, E. Fernandez-Grande, P. Gerstoft, "Differentiable physics for sound field reconstruction", J. Acoust. Soc. Am. XX, XX (2025).
+S. A. Verburg, E. Fernandez-Grande, P. Gerstoft, "Differentiable physics for sound field reconstruction", J. Acoust. Soc. Am. 158, 5 (2025).
 
 <p align="center">
     <img src="examples/figures/twenty_pulses/animation.gif" alt="Sound field reconstructed by PINN and DPNN models" width=100%>
@@ -12,22 +12,23 @@ S. A. Verburg, E. Fernandez-Grande, P. Gerstoft, "Differentiable physics for sou
 
 This repository implements two deep-learning approaches for reconstructing acoustic fields from sparse sensor measurements:
 
-- PINN — physics-informed neural network that models $p(x,y,t)$ (`src/pinn.py`).
-- DPNN — physics-constrained neural network that models the initial pressure $p(x,y,0)$ and uses a differentiable FDTD solver to impose physics (`src/dpnn.py`).
+- PINN — physics-informed neural network that models $p(x,y,t)$ (`src/diffsfr/pinn.py`).
+- DPNN — physics-constrained neural network that models the initial pressure $p(x,y,0)$ and uses a differentiable FDTD solver to impose physics (`src/diffsfr/dpnn.py`).
 
 ### 📁 Repo layout
 
-- `src/` — core implementation
+- `src/diffsfr/` — core implementation (the `diffsfr` package)
 	- `pinn.py` — PINN implementation, training loop, save/load helpers
-	- `dpnn.py` — DPNN implementation and explicit time-integrator
+	- `dpnn.py` — DPNN implementation and training loop
+	- `wave_solver.py` — explicit FDTD time-integrator and its discrete adjoint
 	- `fields.py` — `SoundField` container and generation 
 	- `sensors.py` — `SensorArray` sensor distributions and observed data 
 	- `utils.py` — helpers
 	- `plots.py` — plotting
 
 - `examples/` — `example.ipynb` demonstrates the workflow: build/load field → sensor sampling → train PINN/DPNN → compare.
-- `data/` — pickled `SoundField` instances used by examples.
-- `models/` — example trained models and training histories (loss and lambda arrays).
+- `examples/data/` — pickled `SoundField` instances used by examples.
+- `examples/models/` — example trained models and training histories (loss and lambda arrays).
 
 
 ### ⚙️ Installation
@@ -40,38 +41,58 @@ git clone git@github.com:samuel-verburg/differentiable-soundfield-reconstruction
 
 # OR HTTPS
 git clone https://github.com/samuel-verburg/differentiable-soundfield-reconstruction.git
+
+cd differentiable-soundfield-reconstruction
 ```
-2. Create and activate a virtual environment 
+2. Create and activate an environment, either with venv
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate      # Linux/macOS
+.venv\Scripts\activate         # Windows
 ```
 
-3. (Recommended) Install a CUDA-aware PyTorch wheel first if you plan to use a GPU.
-Visit https://pytorch.org/get-started/locally/ and follow the selector to get the right pip command for your CUDA/toolkit. 
+or with conda
 
-For CPU-only:
 ```bash
-pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+conda create -n diffsfr python
+conda activate diffsfr
 ```
 
-4. Install the package in editable mode from the repository root 
+3. (Optional) Install PyTorch first to choose the build. Visit https://pytorch.org/get-started/locally/ and use the selector to get the pip command for your platform and CUDA version. For example, CPU-only:
 ```bash
-# from repo root
-pip install -e .
+pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
+If you skip this step, step 4 installs the default PyTorch build from PyPI.
+
+4. Install the package in editable mode from the repository root, with the test dependencies
+```bash
+python -m pip install -e ".[dev]"
+```
+This installs all dependencies, makes `import diffsfr` work from any directory, and makes edits to `src/diffsfr/` take effect without reinstalling (restart the Python kernel to pick them up). Use the same environment for the notebook and the tests.
 
 ### 🚀 Quick start — run the example notebook
 
-Start Jupyter in the repo root and open the example notebook:
+From the repository root, start Jupyter and open the example notebook:
 
 ```bash
 jupyter notebook examples/example.ipynb
 ```
 In the notebook, run cells in order. Notes:
-- The notebook adds the repository root to `sys.path` so `import src.*` works when started from `examples/`.
+- The notebook locates `examples/` through the installed package, so the working directory does not matter. Select the kernel of the environment where you ran `pip install -e .`.
 - For quicker runs or debugging set `device='cpu'` in the notebook; the code defaults to GPU when available.
+
+### 🔁 Gradients through the solver
+
+`DPNN(..., gradient=...)` selects how the data-loss gradient is propagated through the FDTD solver (`src/diffsfr/wave_solver.py`):
+
+| `gradient` | Method | Memory | Notes |
+|---|---|---|---|
+| `"adjoint"` (default) | hand-written discrete adjoint: the transposed solver runs backward in time, driven by the sensor residuals | three fields, independent of `n_T` | exact gradient of the discrete loss |
+| `"operator"` | the linear map from `p0` to the sensor traces is precomputed once as a matrix `G` | `M_ob * n_T * n_L**2` | fastest per iteration for small 2D problems |
+| `"autograd"` | PyTorch autodiff through every solver step (original implementation) | grows with `n_T * n_L**2` | reference |
+
+All three give the same gradient up to floating-point rounding. Run the tests with `python -m pytest` from the repository root, using the same environment as the notebook.
 
 ### ⚠️ Important points
 
@@ -95,13 +116,12 @@ If you find our code useful and use them in your own work, please use the follow
 ```
 @article{Verburg2025,
 author = {Verburg, S. A. and Fernandez-Grande, Efren and Gerstoft, Peter},
-doi = {},
+doi = {https://doi.org/10.1121/10.0039862},
 journal = {J. Acoust. Soc. Am.},
-number = {},
-pages = {},
+number = {5},
+pages = {4059--4069},
 title = {Differentiable physics for sound field reconstruction},
-url = {},
-volume = {},
+volume = {158},
 year = {2025}
 }
 ```

@@ -23,9 +23,16 @@ dependencies = [
   "jupyter>=1.0"
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
 [tool.black]
 line-length = 88
 target-version = ['py38']
 
-[tool.setuptools]
-packages = { find = { where = ["src"] } }
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]  # tests also run without `pip install -e .`
